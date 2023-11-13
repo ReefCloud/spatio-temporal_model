@@ -1,0 +1,6 @@
+"Model","time"
+"Model full","16.52"
+"Model random only","14.72"
+"Model covariates only","14.18"
+"Model covariates (no lags) + random","16.19"
+"Model covariates only (no lags)","11.49"

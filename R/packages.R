@@ -1,0 +1,20 @@
+# load R packages 
+
+
+library(dplyr)
+library(ggplot2)
+library(spacetime)
+library(lubridate)
+library(sf)
+library(sp)
+library(FRK)
+library(patchwork)
+library(verification)
+library(ggdist)
+library(stringr)
+library(purrr)
+library(knitr)
+library(ggrepel)
+library(geojsonsf)
+library(tmap)
+library(magick)

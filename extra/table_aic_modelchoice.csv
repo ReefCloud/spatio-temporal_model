@@ -1,0 +1,6 @@
+"Model","AIC"
+"Model full","3332.07"
+"Model random only","3348"
+"Model covariates only","3338.49"
+"Model covariates (no lags) + random","3344.59"
+"Model covariates only (no lags)","3351.49"
