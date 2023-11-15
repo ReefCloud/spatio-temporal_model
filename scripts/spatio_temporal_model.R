@@ -6,7 +6,7 @@
 # Clean the workspace
 rm(list=ls())
 
-# Load R package 
+# Load R package and functions
 source("R/packages.R")
 source("R/functions.R")
 
@@ -113,9 +113,16 @@ STObj@data[,overlapping_fields] <- NULL
 basis <- auto_basis(STplane(),
                     ST_BAUs,
                     tunit = "years",
-                   #  nres = 2L, # for development (model runs in ~2min)
-                     nres = 3L, # for final run (model runs in ~30min)
+                    #nres = 2L, # for development (model runs in ~2min)
+                    nres = 3L, # for final run (model runs in ~15min)
                     regular = TRUE)
+
+
+p1 <- show_basis(basis@Basis1)
+p2 <- show_basis(basis@Basis2)
+
+p_basis <- p1 + p2
+ggsave(plot =  p_basis , width=8, height=4, file = "extra/viz_basis_functions.png")
 
 # Fit FRK model 
 M <- FRK(f = COUNT ~ 1 + MaxDHW + LagMaxDHW.1 + LagMaxDHW.2 + 
@@ -212,7 +219,7 @@ pred_with_data <- pred_FRK_data %>% data.frame() %>% full_join(X) %>%
 p_data <- ggplot(pred_with_data) + 
   geom_line(aes(x = fYEAR, y = (COUNT/TOTAL)*100, group = interaction(as.factor(TRANSECT_NO), REEF)), 
             show.legend = FALSE, linewidth=.1, col="grey30") + 
-  geom_ribbon(aes(x=fYEAR,ymin=.lower*100, ymax=.upper*100, group=1),alpha=.5, fill ="#0072B2FF") +
+  geom_ribbon(aes(x=fYEAR,ymin=.lower*100, ymax=.upper*100, group=1),alpha=.2, fill ="#0072B2FF") +
   geom_line(aes(x=fYEAR, y=pred*100, group=1),size=.6) +
   facet_wrap(~Tier5, ncol=3) +
   ylab("Coral cover") + xlab("Year")+theme_bw()+
@@ -226,28 +233,7 @@ p_data <- ggplot(pred_with_data) +
 
 ggsave(plot =  p_data , width=8, height=10, file = "extra/viz_pred_tier5_data.png")
 
-### Coral cover trajectories of tier5 with and without data 
-
-# Pick 9 random tiers for visualization purpose 
-
-random_tier5 <- sample(unique(pred_with_data$Tier5), 9, replace = FALSE)
-
-#p_data_cut <- ggplot(pred_with_data %>% 
-#                       filter(Tier5 %in% random_tier5)) + 
-#  geom_line(aes(x = fYEAR, y = COUNT/TOTAL, group = interaction(as.factor(TRANSECT_NO), REEF)), 
-#            show.legend = FALSE, linewidth=.1, col="grey30") + 
-#  geom_ribbon(aes(x=fYEAR,ymin=.lower, ymax=.upper, group=1),alpha=.5, fill ="#0072B2FF") +
-#  geom_line(aes(x=fYEAR, y=pred, group=1),size=.6) +
-#  facet_wrap(~Tier5, ncol=3) + ylim(0,1) +
-#  labs(x = "Year", y = "Coral cover", subtitle = "with data") +
-#  theme_bw()+
-#  theme(axis.text.x = element_text(size=8, angle = 90, hjust = 1),legend.position = "right",
-#        axis.text.y = element_text(size=8),axis.title.y=element_text(size=11),
-#        axis.title.x=element_text(size=11),
-#        panel.grid.major = element_blank(),
-#        panel.grid.minor = element_blank(),
-#        strip.background = element_rect(fill = 'white'))+
-#  scale_x_discrete(breaks=c(2004,2008,2012,2016,2020))
+### Coral cover trajectories of tier5 without data 
 
 # Centroid locations
 
@@ -352,10 +338,11 @@ tot_area <- sum(Reef_Areas$reef_ar)
 Sim_Tier4_coverage <- Sim_Tier4 %>% 
   mutate(weighted_pred = pred * reef_ar) %>%
   group_by(fYEAR, draw) %>%
-  summarize(cover = sum(weighted_pred, na.rm = TRUE)) 
+  summarize(cover = sum(weighted_pred, na.rm = TRUE),
+            cover_prop = cover / tot_area) 
 
 pred_tier4 <-  Sim_Tier4_coverage %>% group_by(fYEAR) %>% 
-  ggdist::median_hdci(cover)%>%
+  ggdist::median_hdci(cover_prop)%>%
   dplyr::select(fYEAR:.upper)%>%
   mutate(tier4 = TIER4) %>%
   data.frame() 
@@ -363,9 +350,11 @@ pred_tier4 <-  Sim_Tier4_coverage %>% group_by(fYEAR) %>%
 colnames(pred_tier4) <- c("Year", "Mean" ,"Lower", "Upper", "tier4")
 
 p_tier4 <- ggplot(pred_tier4 %>% data.frame()) +
-  geom_ribbon(aes(x = Year, ymin=Lower, ymax=Upper, group=1), alpha=.4, fill="orange")+
+  geom_ribbon(aes(x = Year, ymin=Lower, ymax=Upper, group=1), alpha=.2, fill="#0072B2FF")+
   geom_line(aes(x=Year, y=Mean,group=1), col="black", linewidth=1.1)+
-  xlab("Year") +ylab("Coverage (sq km)")+theme_bw()+
+  geom_point(aes(x=Year, y=Mean), col="black", size=2.1)+
+  xlab("Year") +ylab("Coral cover")+theme_bw()+
+  ylim(0,0.5) +
   theme(axis.text.x = element_text(size=13),legend.position = "none",
         legend.text = element_text(colour = "black", size = 9), 
         axis.text.y = element_text(size=13),axis.title.y=element_text(size=15),

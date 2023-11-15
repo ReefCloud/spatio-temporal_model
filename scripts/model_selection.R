@@ -120,7 +120,7 @@ basis <- auto_basis(STplane(),
                     ST_BAUs,
                     tunit = "years",
                     # nres = 2L, # for development (model runs in ~2min)
-                    nres = 3L, # for final run (model runs in ~30min per model)
+                    nres = 3L, # for final run (model runs in ~10-15min per model)
                     regular = TRUE)
 
 ###############################
@@ -447,6 +447,8 @@ Reef_Areas <- HexPred_sf %>% distinct(Tier5, .keep_all = TRUE) %>%
   dplyr::select(Tier5, reef_ar) %>% 
   st_drop_geometry()
 
+tot_area <- sum(Reef_Areas$reef_ar) 
+
 Sim_Tier4_full <- left_join(post_dist_df,Reef_Areas) %>%
   mutate(Name = model_name[1])
 
@@ -467,10 +469,11 @@ Sim_Tier4 <- rbind(Sim_Tier4_full, Sim_Tier4_no, Sim_Tier4_no_random, Sim_Tier4_
 Sim_Tier4_coverage <- Sim_Tier4 %>% 
   mutate(weighted_pred = pred * reef_ar) %>%
   group_by(Name, fYEAR, draw) %>%
-  summarize(cover = sum(weighted_pred, na.rm = TRUE)) 
+  summarize(cover = sum(weighted_pred, na.rm = TRUE),
+            cover_prop = cover / tot_area) 
 
 pred_tier4 <-  Sim_Tier4_coverage %>% group_by(Name, fYEAR) %>% 
-  ggdist::median_hdci(cover)%>%
+  ggdist::median_hdci(cover_prop)%>%
   dplyr::select(Name:.upper)%>%
   mutate(tier4 = TIER4) %>%
   data.frame() 
@@ -480,11 +483,11 @@ colnames(pred_tier4) <- c("Name","Year", "Mean" ,"Lower", "Upper", "tier4")
 pred_tier4$Name <- as.factor(pred_tier4$Name)
 pred_tier4$Name <- factor(pred_tier4$Name, levels = c("Model full", "Model random only" ,"Model covariates only", "Model covariates (no lags) + random", "Model covariates only (no lags)"))
 
-
 p_tier4 <- ggplot(pred_tier4 %>% data.frame()) +
-  geom_ribbon(aes(x = Year, ymin=Lower, ymax=Upper, group=1), alpha=.4, fill="orange")+
-  geom_line(aes(x=Year,y=Mean,group=1),col="black",size=1.1)+ facet_wrap(~Name)+
-  xlab("Year") + ylab("Coverage (sq km)")+ theme_bw()+
+  geom_ribbon(aes(x = Year, ymin=Lower, ymax=Upper, group=1), alpha=.2, fill="#0072B2FF")+
+  geom_line(aes(x=Year, y=Mean,group=1), col="black", linewidth=1.1)+
+  geom_point(aes(x=Year, y=Mean), col="black", size=2.1)+ facet_wrap(~Name)+
+  xlab("Year") + ylab("Coral cover")+ theme_bw()+
   theme(axis.text.x = element_text(size=11, angle = 90, hjust = 1),legend.position = "none",
         legend.text = element_text(colour = "black", size = 9), 
         axis.text.y = element_text(size=11),axis.title.y=element_text(size=13),
@@ -498,5 +501,5 @@ ggsave(plot =  p_tier4, width=8, height=5, file = "extra/tier4_modelchoice.png")
 time_values <- c(time, time_no, time_no_random, time_no_lag, time_no_lag_no_random)
 time_table <- data.frame(cbind(model_name, round(time_values,2)))
 colnames(time_table) <- c("Model", "time")
-time_table <- write.csv(time_table, file = "extra/table_time_modelchoice.csv", row.names = F)
+write.csv(time_table, file = "extra/table_time_modelchoice.csv", row.names = F)
 

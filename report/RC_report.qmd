@@ -134,17 +134,26 @@ knitr::include_graphics(file.path(here::here(), "extra", "viz_cycl_control.png")
 knitr::include_graphics(file.path(here::here(), "extra", "viz_dhw_control.png"), rel_path = FALSE)
 ```
 
-### Spatio-temporal model 
+### Spatio-temporal model {#sec-model}
 
 #### Introduction to the model
 
 A spatio temporal model is developed to fit the following purposes: 
 
-* using fine-scale observations of coral cover from monitoring surveys
-* predict changes and associated uncertainty across spatial scales 
+* predict changes in coral cover at large spatial scales
+* propagate uncertainty associated with predictions across spatial scales, appropriately
 * estimates of drivers of coral cover change
+# consider for the fine-scale coral cover dynamics from monitoring data  
 
-We addressed these criteria by modelling coral dynamics in space and time using a fixed-rank approach suitable for big data settings and non-Gaussian responses [@Zammit_Mangion_2021]. The model uses spatio-temporal random effects that are based on an automatic specification of spatio-temporal basis functions constructed via a tensor product of spatial and temporal basis functions. These effects are spatially correlated to introduce a dependence (defined as spatial auto-correlation) between nearby tier5 cells and interpolate values of coral cover at unobserved cells. In addition, coral dynamics is estimated while considering for the effects of heat stress events and cyclones at lag 0, 1 and 2 and reef level variations. Trajectories of coral cover are scaled-up by weighting posterior distributions by reef area within each tier5 cell and summing them by year. The posterior median coral cover and associated uncertainty are estimated from the 95% highest posterior density intervals of their respective distributions [@ggdist] based on 400 draws. In the ReefCloud pipeline, this process is repeated across all tier5 cells within tier4, tier3 and tier2 to produce coral cover trajectory across large spatial scales. In this working example, the spatio-temporal model is implemented using coral cover observations from a unique tier4 unit.   
+We addressed these criteria by modelling coral dynamics in space and time using a fixed-rank approach suitable for big data settings and non-Gaussian responses [@Zammit_Mangion_2021]. The model uses spatio-temporal random effects that are based on an automatic placement of spatio-temporal basis functions constructed via a tensor product of spatial and temporal basis functions (@fig-basis_function). These effects are spatially correlated to introduce a dependence (defined as spatial auto-correlation) between locations across three resolutions based on discrete global grids [@Sahr_2008]. Spatio-temporal random effects allow to interpolate values of coral cover at unobserved tier5 cells and thus increase the volume of information to interpret and scale-up predictions and uncertainty in an appropriate way. In this working example, the spatial component is composed of 120 functions. The temporal component uses 10 knots situated every 2.33 years years with a scaling factor of 2.1 (see [@Zammit_Mangion_2021] for additional information on the basis functions). 
+
+```{r echo=FALSE}
+#| label: fig-basis_function
+#| fig-cap: Spatial (left) and temporal (right) basis functions used in the model.    
+knitr::include_graphics(file.path(here::here(), "extra", "viz_basis_functions.png"), rel_path = FALSE)
+```
+
+Coral dynamics is also estimated while considering for the effects of heat stress events and cyclones at lag 0, 1 and 2 and reef level variations. Trajectories of coral cover are scaled-up by weighting posterior distributions by reef area within each tier5 cell and summing them by year. The posterior median coral cover and associated uncertainty are estimated from the 95% highest posterior density intervals of their respective distributions [@ggdist] based on 400 draws. In the ReefCloud pipeline, this process is repeated across all tier5 cells within tier4, tier3 and tier2 to produce coral cover trajectory across large spatial scales. In this working example, the spatio-temporal model is implemented using coral cover observations from a unique tier4 unit.   
 
 The spatio-temporal hierarchical generalized linear mixed model consists of two conditional-probability layers [@sainsbury2021modelling]. In the process layer, coral dynamics is modelled according to different types of spatio-temporal variability attributed to disturbances, random variations that occurred at the medium spatial scales ($\mathrm{v}$) and other independent variations at fine scale ($\mathrm{\zeta}$) and reef scale ($\mathrm{V}$). In the data layer, the nature of the data is used to determine the probability distribution of the model. Here, we use a binomial distribution with coral cover expressed as counts per tier5 cell. Indeed, ReefCloud methodology uses a sample of 50 points within each image, so that abundances of corals $y_{it}$ for observation $i$ sampled at location $\boldsymbol{s}$ and time $t$ are integers between 0 and 50. The binomial distribution is a function of a mean latent process, $\mu_{it}$ that are then averaged across tier5 cells by year and linked to the process layer via an inverse-logit transformation. This step facilitates the spatial change-of-support between observations in coral cover at the transect level and model predictions at the tier5 level.   
 
@@ -174,14 +183,14 @@ The best model formulation was selected using visual and statistical diagnostics
 At the tier5 level, predictive values in coral cover and associated uncertainty changed in space and time (@fig-coral_pred; @fig-unc_pred). It is expected when using spatio-temporal model that the uncertainty remains low at predictive locations with and close to the data and increase further away their locations. In this working example, we observed this with a large uncertainty in the southern section of the predictive area ranging between 60-100% and varying across years (@fig-unc_pred). Despite, the model captures well coral cover trajectories in tier5 with data (@fig-traj-data_pred) and surrounding cells (@fig-traj-all_pred). Predictions in coral cover are also available outside the temporal range of observed values as shown for the tier5 "7116" where observations in coral cover are only available for the years 2007-2013 whereas the model predicted changes from 2004 to 2022 (@fig-traj-data_pred).       
 
 
-#### Spatio-temporal predictions
+#### Predictions
 ```{r echo=FALSE}
 #| label: fig-coral_pred
 #| fig-cap: Spatio-temporal predictions of coral cover.    
 knitr::include_graphics(file.path(here::here(), "extra", "animation_cover.gif"), rel_path = FALSE)
 ```
 
-#### Uncertainty associated with spatio-temporal predictions
+#### Uncertainty associated with predictions
 ```{r echo=FALSE}
 #| label: fig-unc_pred
 #| fig-cap: Uncertainty associated with spatio-temporal predictions of coral cover. Uncertainty is represented using the width of the 95% credible intervals from posterior predictive distributions.  
@@ -228,7 +237,7 @@ knitr::include_graphics(file.path(here::here(), "extra", "fixed_effects_model.pn
 
 ## Acknowledgements
 
-The authors would like to thank the research team that contribute to the model and pipeline development. We are grateful to collaborate with the fathers of the FRK R package Andrew Zammit Mangion and Matthew Sainsbury-Dale. We thank Marji Puotinen and Ronen Galaiduk for their work with the disturbance spatial layers, Luz Valerie Pascal to improve the ReefCloud modelling pipeline and Brendan Ford to create the report template. This research was funded by the Australian Institute of Marine Science and the Australian Department of Foreign Affairs and Trade.     
+The authors would like to thank the research team that contribute to the model and pipeline development. We are grateful for the support of the FRK fathers Andrew Zammit Mangion and Matthew Sainsbury-Dale and their contribution in developing new functions to better match with ReefCloud purposes. We thank Marji Puotinen and Ronen Galaiduk for their work with the disturbance spatial layers, Luz Valerie Pascal to improve the modelling pipeline and Brendan Ford to create the report template. This work was funded by the Australian Institute of Marine Science and the Australian Department of Foreign Affairs and Trade.     
 
 ## Appendix {#sec-appendix}
 
@@ -247,7 +256,7 @@ We examined five model formulations:
 
 Results show that Model full formulation produces the best model outputs based on the AIC values (@tbl-aic). 
 
-Overall, the effect sizes of fixed effects are pretty similar between model formulation (@fig-fixed_eff). The inclusion of random effects at the reef level decreases the range of predicted values of coral cover (@fig-range) and associated uncertainty (@fig-unc) at tier5 level. Lagged covariates contribute to reduce the uncertainty associated with the estimation of disturbance impacts with a substantive negative effects of cyclone exposure detected in the models that include them. At tier4 level, lagged covariates reduce the magnitude of estimated changes in coral cover between 2016-2018, years associated with the presence of cyclones and heat stress events.  
+Overall, the effect sizes of fixed effects are pretty similar between model formulation (@fig-fixed_eff). Lagged covariates contribute to reduce the uncertainty associated with the estimation of disturbance impacts with a substantive negative effects of cyclone exposure detected in the models that include them. The inclusion of random effects at the reef level decreases the range of predicted values of coral cover (@fig-range) and associated uncertainty (@fig-unc) at tier5 level. At tier4 level, lagged covariates reduce the magnitude of positive changes in coral cover between 2012-2018 and random effects reduce associated uncertainty (@fig-tier4). 
 
 ```{r, include = FALSE, echo= FALSE}
 source("../R/packages.R")
@@ -281,7 +290,7 @@ knitr::include_graphics(file.path(here::here(), "extra", "uncertainty_modelchoic
 
 ```{r echo=FALSE, fig.width=8, fig.height=5}
 #| label: fig-tier4
-#| fig-cap: Weigthed coral cover trajectory at tier4 level. The black line shows averaged area in coral cover and orange ribbons associated 95% credible intervals.  
+#| fig-cap: Weigthed coral cover trajectory at tier4 level. The black line shows averaged area in coral cover and blue ribbons associated 95% credible intervals.  
 knitr::include_graphics(file.path(here::here(), "extra", "tier4_modelchoice.png"), rel_path = FALSE)
 ```
 
@@ -321,7 +330,6 @@ Five predictive measures are used:
 #| tbl-colwidths: [60,40]
 indicator_table <- read.csv("../extra/indicator_table_leaveout_modelchoice.csv")
 colnames(indicator_table) <- c("Test","95% coverage", "95% interval score", "Root-mean-squared prediction error", "Continuous ranked probability score", "AIC")
-
 kable(head(indicator_table))
 ```
 
@@ -335,7 +343,62 @@ kable(head(time_table_leaveout))
 :::
 
 ::: {.callout collapse="true"}
-### Model diagnostics
+### Basis function exploration analysis
+
+The aim of this analysis is to explore the influence of the basis function formulation with a focus on the temporal dimension. To do this, we compare five model performance using different number of knots in the temporal basis function (@fig-all_basisfunction): 
+
+* Model full: number and location of temporal knots automatically estimated from the FRK function and adopted by ReefCloud (@sec-model).
+* Model 5K: five temporal knots randomly selected from the FRK auto basis function. 
+* Model 3K: three temporal knots randomly selected from the FRK auto basis function. 
+* Model 1K: one temporal knot randomly selected from the FRK auto basis function. 
+* Model noK: no temporal basis function - spatial model only.  
+
+For each model, the spatial component is similar than model full (@fig-basis_function). At the tier5 level, the inclusion of additional knots tends to smooth estimated trajectory of coral cover and associated uncertainty (@fig-fit_basisfunction). Interestingly, this trend is not propagated at the tier4 level with a higher uncertainty estimated for the model full and lower for the model with one temporal knot and none (@fig-fit-tier4_basisfunction). Also, we estimate different effect size of disturbances across the models with a positive (but not significant) effect of cyclone exposure for the model full, five and three knots and negative (but not significant) otherwise (@fig-fixed-effect_basisfunction). Results show that Model full formulation produces the best model outputs based on the AIC values (@tbl-aic_basisfunction). 
+   
+```{r, include = TRUE, echo= FALSE}
+#| label: fig-all_basisfunction
+#| fig-cap: Locations of the knots for each temporal component. The x axis corresponds to the years.  
+knitr::include_graphics(file.path(here::here(), "extra", "viz_basisfunction.png"), rel_path = FALSE)
+```
+
+```{r, include = TRUE, echo= FALSE}
+#| label: fig-fit_basisfunction
+#| fig-cap: Model fits for a unique tier5 with different temporal components. The black lines show averaged predictions at the tier5 level and blue ribbons associated 95% credible intervals. The grey lines show observed coral cover trajectories at the transect level. 
+knitr::include_graphics(file.path(here::here(), "extra", "viz_pred_tier5_data_basisfunction.png"), rel_path = FALSE)
+```
+
+```{r, include = TRUE, echo= FALSE}
+#| label: fig-fit-tier4_basisfunction
+#| fig-cap: Weigthed coral cover trajectory at tier4 level. The black line shows averaged area in coral cover and blue ribbons associated 95% credible intervals.   
+knitr::include_graphics(file.path(here::here(), "extra", "viz_pred_tier4_basisfunction.png"), rel_path = FALSE)
+```
+
+```{r, include = TRUE, echo= FALSE}
+#| label: fig-fixed-effect_basisfunction
+#| fig-cap: Estimated values of disturbance effects.   
+knitr::include_graphics(file.path(here::here(), "extra", "fixed_effects_basisfunction.png"), rel_path = FALSE)
+```
+
+```{r, include = TRUE, echo= FALSE}
+#| label: tbl-aic_basisfunction
+#| tbl-cap: "AIC table."
+#| tbl-colwidths: [60,40]
+AIC_table <- read.csv("../extra/table_aic_basisfunction.csv")
+colnames(AIC_table) <- c("Model name", "AIC")
+kable(head(AIC_table))
+```
+
+```{r, include = TRUE, echo= FALSE}
+#| label: tbl-time-basisfunction
+#| tbl-cap: "Computing time (in min) for each test."
+#| tbl-colwidths: [60,40]
+time_table_leaveout <- read.csv("../extra/table_time_basisfunction.csv")
+kable(head(time_table_leaveout))
+```
+:::
+
+::: {.callout collapse="true"}
+### Model residuals diagnostics
 
 ```{r echo=FALSE, fig.width=8, fig.height=5}
 #| label: fig-dharma

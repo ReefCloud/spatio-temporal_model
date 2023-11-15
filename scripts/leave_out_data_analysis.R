@@ -162,7 +162,7 @@ for (i in 1:length(test.validation)){
                       ST_BAUs,
                       tunit = "years",
                       # nres = 2L, # for development (model runs in ~2min)
-                      nres = 3L, # for final run (model runs in ~30min per model)
+                      nres = 3L, # for final run (model runs in ~10-15min per model)
                       regular = TRUE)
   
   ## Fit FRK model
